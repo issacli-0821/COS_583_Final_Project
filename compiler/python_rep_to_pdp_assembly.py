@@ -4,8 +4,8 @@ from enum import Enum
 # Dictionary from identifier to location on the stack
 class Environment:
     def __init__(self):
-        self.env : dict[str, int] = {"%0": 0, "%1": 2}
-        self.next_offset = 4
+        self.env : dict[str, int] = {}
+        self.next_offset = 0
     
     def get(self, identifier: str) -> str:
         return str(self.env[identifier]) + "(SP)"
@@ -30,10 +30,12 @@ class Opcode(Enum):
     RET = "RET"
     RTS = "RTS"
 
+
 class Registers(Enum):
     R0 = "R0"
     PC = "PC"
     SP = "SP"
+
 
 class Instruction:
     def __init__(self, opcode: Opcode, operand1: str, operand2: str = None):
@@ -48,7 +50,6 @@ class Instruction:
             return f"{self.opcode.name} {self.operand1}"
     
 
-
 """
 define dso_local i32 @add(i32 noundef %0, i32 noundef %1) #0 {
   %3 = alloca i32, align 4
@@ -62,21 +63,9 @@ define dso_local i32 @add(i32 noundef %0, i32 noundef %1) #0 {
 }
 """
 
-def print_module(module: llvmlite.binding.module.ModuleRef):
-    for func in module.functions:
-        print("Function:", func.name)
-        for block in func.blocks:
-            print(" Block:", block.name)
-            for instr in block.instructions:
-                print("  Instr:", instr.opcode)
-                for op in instr.operands:
-                    print("    Operand:", op)
-    return
-
 
 def python_rep_to_pdp_assembly(module: llvmlite.binding.module.ModuleRef) -> list[Instruction]:
     all_instructions = []
-    # print_module(module)
     for function in module.functions:
         pdp_instructions = translate_function(function)
         all_instructions.extend(pdp_instructions)
@@ -86,7 +75,11 @@ def python_rep_to_pdp_assembly(module: llvmlite.binding.module.ModuleRef) -> lis
 
 def translate_function(function: llvmlite.binding.value.ValueRef) -> list[Instruction]:
     env = Environment()
+
     # Populate env with function inputs?
+    params = extract_params(str(function))
+    for param in params:
+        env.add(param, 2)
 
     all_instructions = []
     for block in function.blocks:
@@ -108,13 +101,6 @@ def translate_block(block: llvmlite.binding.value.ValueRef, env: Environment) ->
 
 def translate_instruction(instr: llvmlite.binding.value.ValueRef, env: Environment) -> list[Instruction]:
 
-    # print(instr)
-    # print("type: ", instr.type)
-    # print("opcode: ", instr.opcode)
-    # for op in instr.operands:
-    #     print("Operand: ", op)
-    # print()
-
     match instr.opcode:
         case "alloca":
             return translate_alloca(instr, env)
@@ -135,29 +121,12 @@ def translate_instruction(instr: llvmlite.binding.value.ValueRef, env: Environme
             raise NotImplementedError(f"Instruction {instr.opcode} not supported yet.")
 
 
-def get_identifier_from_instruction(instr) -> str:
-
-    str_instr = str(instr).lstrip()
-    identifier = str_instr[:str_instr.index(" ")]
-
-    return identifier
-
-def get_identifier_from_operand_with_type(operand) -> str:
-    str_instr = str(operand).lstrip()
-    identifier = str_instr[str_instr.index(" "):]
-
-    return identifier.lstrip()
-
-
 def translate_alloca(instr, env: Environment) -> list[Instruction]:
 
     env.add(get_identifier_from_instruction(instr), 2)
     return []
 
 
-"""
-instr format: add [flags] <type> <op1>, <op2>
-"""
 def translate_add(instr, env: Environment) -> list[Instruction]:
     operands = list(instr.operands)
     operand_one = operands[0]
@@ -191,13 +160,6 @@ def translate_store(instr, env: Environment) -> list[Instruction]:
     return [instruction]
 
 
-
-"""
-%5 = load i32, i32* %3, align 4
-type:  i32
-opcode:  load
-Operand:    %3 = alloca i32, align 4
-"""
 def translate_load(instr, env: Environment) -> list[Instruction]:
     operands = list(instr.operands)
     operand = operands[0]
@@ -221,3 +183,56 @@ def translate_ret(instr, env: Environment) -> list[Instruction]:
     return_instruction = Instruction(Opcode.RTS, Registers.PC.name)
     
     return [mov_instruction, return_instruction]
+
+
+# -----------------------------------------------------------------------
+# Helper functions for parsing
+
+
+# Takes in function_string and extracts all params associated with it
+def extract_params(function_string):
+    params = []
+
+    lines = function_string.split('\n')
+
+    for line in lines:
+        # Look for lines that contain the function signature (starting with 'define')
+        if line.strip().startswith('define'):
+            start_index = line.find('(')
+            end_index = line.find(')')
+
+            arg_str = line[start_index + 1:end_index].strip()
+
+            args = arg_str.split(',')
+            for arg in args:
+                parts = arg.split()
+                if len(parts) >= 2 and parts[2].startswith('%'):
+                    params.append(parts[2])
+                
+
+    return params
+
+
+def print_module(module: llvmlite.binding.module.ModuleRef):
+    for func in module.functions:
+        print("Function:", func.name)
+        for block in func.blocks:
+            print(" Block:", block.name)
+            for instr in block.instructions:
+                print("  Instr:", instr.opcode)
+                for op in instr.operands:
+                    print("    Operand:", op)
+
+
+def get_identifier_from_instruction(instr) -> str:
+
+    str_instr = str(instr).lstrip()
+    identifier = str_instr[:str_instr.index(" ")]
+
+    return identifier
+
+def get_identifier_from_operand_with_type(operand) -> str:
+    str_instr = str(operand).lstrip()
+    identifier = str_instr[str_instr.index(" "):]
+
+    return identifier.lstrip()
