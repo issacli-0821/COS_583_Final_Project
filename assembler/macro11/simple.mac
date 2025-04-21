@@ -1,0 +1,10 @@
+mov #1000,sp;
+mov #1,0(sp);
+mov #2,2(sp);
+mov 0(sp),4(sp);
+mov 2(sp),6(sp); 
+mov 4(sp),10(sp);
+mov 6(sp),12(sp);
+add 10(sp),14(sp);
+add 12(sp),14(sp);
+mov 14(sp),r0;
