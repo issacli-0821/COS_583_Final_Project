@@ -2,9 +2,18 @@
 
 #include <stdio.h>
 
+// %2 = n
+// %3 = first
+// %4 = second
+// %5 = fib
+// %6 = i
+
+
 int main() {
     int n = 30;
-    int first = 0, second = 1, fib;
+    int first = 0;
+    int second = 1;
+    int fib = 0;
 
     for (int i = 2; i <= n; i++) {
         fib = first + second;
@@ -12,6 +21,5 @@ int main() {
         second = fib;
     }
 
-    printf("Result: %d\n", second);
     return 0;
 }
