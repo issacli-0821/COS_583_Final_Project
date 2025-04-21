@@ -23,22 +23,30 @@ class Environment:
         return self.env.pop(identifier)
 
 
-# Enum to represent opcodes
+# Enum to represent PDP opcodes
 class Opcode(Enum):
     MOV = "mov"
     ADD = "add"
     RET = "ret"
+    RTS = "rts"
 
+class SpecialRegister(Enum):
+    PC = "pc"
+    SP = "sp"
 
 class Instruction:
-    def __init__(self, opcode: Opcode, operand1: str, operand2: str):
+    def __init__(self, opcode: Opcode, operand1: str, operand2: str = None):
         self.opcode = opcode
         self.operand1 = operand1
         self.operand2 = operand2
     
     def __str__(self):
-        return f"{self.opcode.name} {self.operand1}, {self.operand2}"
+        if self.operand2 is not None:
+            return f"{self.opcode.name} {self.operand1}, {self.operand2}"
+        else:
+            return f"{self.opcode.name} {self.operand1}"
     
+
 
 """
 define dso_local i32 @add(i32 noundef %0, i32 noundef %1) #0 {
@@ -100,10 +108,10 @@ def translate_block(block: llvmlite.binding.value.ValueRef, env: Environment) ->
 def translate_instruction(instr: llvmlite.binding.value.ValueRef, env: Environment) -> list[Instruction]:
 
     print(instr)
-    print("type: ", instr.type)
-    print("opcode: ", instr.opcode)
-    for op in instr.operands:
-        print("Operand: ", op)
+    # print("type: ", instr.type)
+    # print("opcode: ", instr.opcode)
+    # for op in instr.operands:
+    #     print("Operand: ", op)
     print()
 
     match instr.opcode:
@@ -133,6 +141,11 @@ def get_identifier_from_instruction(instr) -> str:
 
     return identifier
 
+def get_identifier_from_operand_with_type(operand) -> str:
+    str_instr = str(operand).lstrip()
+    identifier = str_instr[str_instr.index(" "):]
+
+    return identifier.lstrip()
 
 
 def translate_alloca(instr, env: Environment) -> list[Instruction]:
@@ -145,15 +158,51 @@ def translate_alloca(instr, env: Environment) -> list[Instruction]:
 instr format: add [flags] <type> <op1>, <op2>
 """
 def translate_add(instr, env: Environment) -> list[Instruction]:
-    for op in instr.operands:
-       add_op = str(op.name)
+    operands = list(instr.operands)
+    operand_one = operands[0]
+    operand_two = operands[1]
+
+    instruction_identifier = get_identifier_from_instruction(instr)
+    # print("Instruction identifier from add: ", instruction_identifier)
+    env.add(instruction_identifier, 2)
+
+    operand_one_identifier = get_identifier_from_instruction(operand_one)
+    # print("operand_one_identifier: ", operand_one_identifier)
+    instruction_one = Instruction(Opcode.ADD,
+                                  env.get(operand_one_identifier), env.get(instruction_identifier))
+
+    operand_two_identifier = get_identifier_from_instruction(operand_two)
+    # print("Operand_two_identifier: ", operand_two_identifier)
+    instruction_two = Instruction(Opcode.ADD,
+                                  env.get(operand_two_identifier), env.get(instruction_identifier))
 
     
-    return []
+    return [instruction_one, instruction_two]
 
 
 def translate_store(instr, env: Environment) -> list[Instruction]:
-    return []
+    operands = list(instr.operands)
+    operand_one = operands[0]
+    operand_two = operands[1]
+    # print("Store operand one", operand_one)
+    # print("Store operand two", operand_two)
+    # return []
+
+    # instruction_identifier = get_identifier_from_instruction(instr)
+    # print("Instruction identifier from store: ", instruction_identifier)
+    # env.add(instruction_identifier, 2)
+
+    operand_one_identifier = get_identifier_from_operand_with_type(operand_one)
+    # print("operand_one_identifier: ", operand_one_identifier)
+    # instruction_one = Instruction(Opcode.ADD,
+    #                               env.get(operand_one_identifier), env.get(instruction_identifier))
+
+    operand_two_identifier = get_identifier_from_instruction(operand_two)
+    # print("Operand_two_identifier: ", operand_two_identifier)
+    # instruction_two = Instruction(Opcode.ADD,
+    #                               env.get(operand_two_identifier), env.get(instruction_identifier))
+    instruction = Instruction(Opcode.MOV, env.get(operand_one_identifier), env.get(operand_two_identifier))
+    return [instruction]
 
 
 
@@ -182,4 +231,14 @@ def translate_load(instr, env: Environment) -> list[Instruction]:
 
 
 def translate_ret(instr, env: Environment) -> list[Instruction]:
-    return []
+    operand = list(instr.operands)[0]
+    print("Operand from ret: ", operand)
+
+    operand_identifier = get_identifier_from_instruction(operand)
+    print(operand_identifier)
+    mov_instruction = Instruction(Opcode.MOV, env.get(operand_identifier))
+    print(mov_instruction)
+    return_instruction = Instruction(Opcode.RTS, SpecialRegister.PC.name)
+    print(return_instruction)
+    
+    return [mov_instruction, return_instruction]
