@@ -5,7 +5,6 @@ from enum import Enum
 # Dictionary from identifier to location on the stack
 class Environment:
     def __init__(self):
-        # TODO: REMOVE THE %10
         self.env : dict[str, int] = {}
         self.next_offset = 2
 
@@ -99,9 +98,6 @@ def translate_function(function: llvmlite.binding.value.ValueRef) -> list[LineOf
     params, function_name = extract_function_info(str(function))
     for param in params:
         env.add(param, 2)
-
-    # TODO: Handle main function
-    # Use as starting point (setup pc or use .global),
  
     all_instructions = [function_name + ":"]
 
@@ -253,8 +249,6 @@ def translate_ret(instr, env: Environment) -> list[LineOfAssembly]:
     else:
         mov_instruction = Instruction(Opcode.MOV, env.get(operand_identifier), Registers.R0.name)
 
-
-    # TODO: Need to look at this, we don't want to RTS from all functions?
     return_instruction = Instruction(Opcode.RTS, Registers.PC.name)
 
     return [mov_instruction, return_instruction]
@@ -318,19 +312,7 @@ def translate_branch(instr, env: Environment) -> list[LineOfAssembly]:
         return [test_instruction, beq_instruction, br_instruction]
 
 
-"""
-    CMP     op1, op2      ; Compare op1 with op2
-    BLE     IS_LE       ; Branch if Less or Equal
-    CLR     R2          ; Not LE, set result to 0
-    BR      DONE        ; Skip to end
-IS_LE:
-    MOV     #1, R2      ; Is LE, set result to 1
-DONE:
-    ; Continue with the rest of your code
-
-"""
 def translate_icmp(instr, env: Environment) -> list[LineOfAssembly]:
-    # TODO: add support for multiple icmp, need unique labels?
     instructions = []
     instr_identifier = get_identifier_from_instruction(instr)
 
