@@ -2,8 +2,7 @@ import argparse
 
 from compiler.compile_to_pdp import compile_to_pdp_assembly
 
-
-# Usage: python3 compiler.py example_c_and_ll_files/addFive.c
+# Usage: python3 compiler.py example_c_files/fib.c
 def main():
 
     parser = argparse.ArgumentParser(
