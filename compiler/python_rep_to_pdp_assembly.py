@@ -101,7 +101,9 @@ def translate_function(function: llvmlite.binding.value.ValueRef) -> list[LineOf
  
     all_instructions = [function_name + ":"]
 
-    # setup sp (choose a good start location)
+   # TODO: Setup pc or use .global for main entry point
+    
+	# setup sp (choose a good start location)
     if function_name == "main":
         set_sp_instruction = Instruction(Opcode.MOV, "#1000", Registers.SP.name)
         all_instructions.append(set_sp_instruction)
@@ -313,6 +315,7 @@ def translate_branch(instr, env: Environment) -> list[LineOfAssembly]:
 
 
 def translate_icmp(instr, env: Environment) -> list[LineOfAssembly]:
+    # TODO: add support for multiple icmp, need unique labels?
     instructions = []
     instr_identifier = get_identifier_from_instruction(instr)
 
