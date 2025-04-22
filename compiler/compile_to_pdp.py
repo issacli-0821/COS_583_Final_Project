@@ -10,12 +10,15 @@ def compile_to_pdp_assembly(c_file_path: str):
     llvm_path_name = c_to_llvm_ir(c_file_path)
     
     module = llvm_ir_to_python_rep(llvm_path_name)
-    pdp_assembly = python_rep_to_pdp_assembly(module)
-    pdp_machine_code_file_name = pdp_assembly_to_pdp_machine_code(pdp_assembly)
+    pdp_assembly = python_rep_to_pdp_assembly.python_rep_to_pdp_assembly(module)
+
+    pdp_file_path = c_file_path.replace(".c", ".s")
+
+    with open(pdp_file_path, "w") as pdp_file:
+        for value in pdp_assembly:
+            pdp_file.write(str(value) + "\n")
     
-    
-    print("hello")
-    return
+    return pdp_assembly
 
 
 # Creates an LLVM IR file at the same location as c_file_path
@@ -42,33 +45,3 @@ def llvm_ir_to_python_rep(llvm_path_name: str) -> llvmlite.binding.module.Module
     module.verify()
     
     return module
-
-
-# def python_rep_to_pdp_assembly(module: llvmlite.binding.module.ModuleRef) -> list[str]:
-    
-
-    
-#     return
-
-
-# Write PDP machine code to disk and return path to PDP machine code
-def pdp_assembly_to_pdp_machine_code(pdp_assembly: list[str]):
-    
-
-
-    return
-
-# C --> LLVM IR
-# clang
-
-# LLVM IR --> IR in Python --> PDP
-# llvmlite
-
-def main():
-    c_file_path = "../example_c_and_ll_files/simple.c"
-    llvm_ir = c_to_llvm_ir(c_file_path)
-    print(llvm_ir)
-    return
-
-if __name__ == "__main__":
-    main()

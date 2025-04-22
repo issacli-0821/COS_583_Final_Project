@@ -15,7 +15,6 @@ class Environment:
 
 
     def add(self, identifier: str, size: int):
-        print(f"Added {identifier} to {self.next_offset}")
         self.env[identifier] = self.next_offset
         self.next_offset += size
 
@@ -140,8 +139,6 @@ def translate_block(block: llvmlite.binding.value.ValueRef, env: Environment) ->
 
     for instr in block.instructions:
         pdp_instructions = translate_instruction(instr, env)
-        for instruction in pdp_instructions:
-            print(instruction)
         all_instructions.extend(pdp_instructions)
 
     return all_instructions
@@ -149,8 +146,6 @@ def translate_block(block: llvmlite.binding.value.ValueRef, env: Environment) ->
 
 def translate_instruction(instr: llvmlite.binding.value.ValueRef, env: Environment) -> list[LineOfAssembly]:
 
-    print()
-    print(instr)
     match instr.opcode:
         case "alloca":
             return translate_alloca(instr, env)
