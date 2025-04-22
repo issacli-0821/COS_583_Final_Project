@@ -2,13 +2,6 @@
 
 #include <stdio.h>
 
-// %2 = n
-// %3 = first
-// %4 = second
-// %5 = fib
-// %6 = i
-
-
 int main() {
     int n = 30;
     int first = 0;
