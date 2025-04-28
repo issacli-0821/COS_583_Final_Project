@@ -3,3 +3,10 @@ __pycache__
 .venv
 .vscode/
 venv
+
+assembler/output/
+assembler/macro11/dumpobj
+assembler/macro11/macro11
+*.o
+example_c_files/*.ll
+example_c_files/*.s
