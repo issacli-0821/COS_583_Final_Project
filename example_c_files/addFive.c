@@ -7,5 +7,5 @@ int main() {
 
 	num = addFive(num);
 
-	return 0;
+	return num;
 }

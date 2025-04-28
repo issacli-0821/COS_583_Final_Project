@@ -14,5 +14,5 @@ int main() {
         second = fib;
     }
 
-    return 0;
+    return second;
 }

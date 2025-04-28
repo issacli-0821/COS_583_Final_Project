@@ -11,5 +11,5 @@ int main() {
     int a = 6;
     int b = 4;
     int product = multiply(a, b);
-    return 0;
+    return product;
 }
