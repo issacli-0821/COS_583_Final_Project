@@ -2,6 +2,35 @@ import llvmlite
 from enum import Enum
 
 
+# PDP opcodes
+class Opcode(Enum):
+    MOV = "MOV"
+    ADD = "ADD"
+    HALT = "HALT"
+    RET = "RET"
+    RTS = "RTS"
+    SUB = "SUB"
+    JSR = "JSR"
+    BR = "BR"
+    BEQ = "BEQ"
+    TST = "TST"
+    CMP = "CMP"
+    BLE = "BLE"
+
+
+# PDP registers
+class Registers(Enum):
+    R0 = "R0"
+    PC = "PC"
+    SP = "SP"
+
+
+# Useful labels for compilers
+class Labels(Enum):
+    ISLE = "ISLE"
+    DONEWITHBLE = "DONEWITHBLE"
+
+
 # Dictionary from identifier to location on the stack
 class Environment:
     def __init__(self):
@@ -22,34 +51,14 @@ class Environment:
         return self.env.pop(identifier)
 
 
-# Enum to represent PDP opcodes
-class Opcode(Enum):
-    MOV = "MOV"
-    ADD = "ADD"
-    HALT = "HALT"
-    RET = "RET"
-    RTS = "RTS"
-    SUB = "SUB"
-    JSR = "JSR"
-    BR = "BR"
-    BEQ = "BEQ"
-    TST = "TST"
-    CMP = "CMP"
-    BLE = "BLE"
-
-
-class Registers(Enum):
-    R0 = "R0"
-    PC = "PC"
-    SP = "SP"
-
-
+# Base class for a single line of assembly code
 class LineOfAssembly:
     # Should not be called
     def __init__():
         return
 
 
+# Assembly labels
 class Label(LineOfAssembly):
     def __init__(self, label_name):
         self.label_name = label_name
@@ -59,12 +68,7 @@ class Label(LineOfAssembly):
         return f"{self.opcode.name}:"
 
 
-class Labels(Enum):
-    ISLE = "ISLE"
-    DONEWITHBLE = "DONEWITHBLE"
-    
-
-
+# Assembly instructions
 class Instruction(LineOfAssembly):
     def __init__(self, opcode: Opcode, operand1: str = None, operand2: str = None):
         self.opcode = opcode
@@ -79,9 +83,11 @@ class Instruction(LineOfAssembly):
             return f"\t{self.opcode.name} {self.operand1}"
         else: 
             return f"\t{self.opcode.name}"
- 
 
 
+# -----------------------------------------------------------------------
+# Functions for compiler
+# -----------------------------------------------------------------------
 
 def python_rep_to_pdp_assembly(module: llvmlite.binding.module.ModuleRef) -> list[LineOfAssembly]:
     all_instructions = []
@@ -351,8 +357,10 @@ def translate_icmp(instr, env: Environment) -> list[LineOfAssembly]:
 
     return instructions
 
+
 # -----------------------------------------------------------------------
 # Helper functions for parsing
+# -----------------------------------------------------------------------
 
 
 # Takes in function_string and extracts info associated with it
