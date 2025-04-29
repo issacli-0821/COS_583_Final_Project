@@ -51,7 +51,7 @@ class ICMP_Type(Enum):
 
 
 # Useful constants
-TOP_OF_STACK = "#1000"
+TOP_OF_STACK = "#40000"
 ZERO = "#0"
 
 
@@ -125,12 +125,25 @@ def python_rep_to_pdp_assembly(
     module: llvmlite.binding.module.ModuleRef,
 ) -> list[LineOfAssembly]:
     # First instruction branches to the main method
-    all_instructions = [Instruction(Opcode.BR, Labels.MAIN.value)]
+    # all_instructions = [Instruction(Opcode.BR, Labels.MAIN.value)]
+    all_instructions = []
 
     for function in module.functions:
         pdp_instructions = translate_function(function)
 
-        all_instructions.extend(pdp_instructions)
+        # all_instructions.extend(pdp_instructions)
+
+        _, function_name = extract_function_info(str(function))
+
+        if function_name == Labels.MAIN.value:
+            # print("pdp: ", pdp_instructions)
+            # print("all: ", all_instructions)
+            pdp_instructions.extend(all_instructions)
+            all_instructions = pdp_instructions
+            # print("this:", all_instructions)
+        else:
+            all_instructions.extend(pdp_instructions)
+            # print("that: ", all_instructions)
 
     return all_instructions
 
@@ -278,23 +291,23 @@ def translate_mul(instr, env: Environment) -> list[LineOfAssembly]:
     operand_one_identifier = get_identifier_from_instruction(operand_one)
     operand_two_identifier = get_identifier_from_instruction(operand_two)
 
-    move_zero_instruction = Instruction(Opcode.MOV, 0, Registers.R0.value)
     if operand_one.is_constant:
-        move_multiplicand_instruction = Instruction(Opcode.MOV, operand_one_identifier, Registers.R1.value)
+        move_multiplicand_instruction = Instruction(Opcode.MOV, operand_one_identifier, Registers.R0.value)
     else:
-        move_multiplicand_instruction = Instruction(Opcode.MOV, env.get(operand_one_identifier), Registers.R1.value)
+        move_multiplicand_instruction = Instruction(Opcode.MOV, env.get(operand_one_identifier), Registers.R0.value)
     
     if operand_two.is_constant:
         octal_value = oct(int(operand_two_identifier[1:]))[2:]
-        # print(octal_value[])
-        move_constant_instruction = Instruction(Opcode.MOV, f"#{octal_value}", Registers.R2.value)
-        multiply_instruction = Instruction(Opcode.MUL, Registers.R2.value, Registers.R0.value)
-        return [move_zero_instruction, move_multiplicand_instruction,
-                move_constant_instruction, multiply_instruction]
+        move_constant_instruction = Instruction(Opcode.MOV, f"#{octal_value}", Registers.R1.value)
+        multiply_instruction = Instruction(Opcode.MUL, Registers.R1.value, Registers.R0.value)
+        move_result_instruction = Instruction(Opcode.MOV, Registers.R1.value, env.get(instruction_identifier))
+        return [move_multiplicand_instruction, move_constant_instruction,
+                multiply_instruction, move_result_instruction]
     else:
         operand_two_identifier = get_identifier_from_instruction(operand_two)
         multiply_instruction = Instruction(Opcode.MUL, env.get(operand_two_identifier), Registers.R0.value)
-        return [move_zero_instruction, move_multiplicand_instruction, multiply_instruction]
+        move_result_instruction = Instruction(Opcode.MOV, Registers.R1.value, env.get(instruction_identifier))
+        return [move_multiplicand_instruction, multiply_instruction, move_result_instruction]
 
     
 
@@ -311,7 +324,7 @@ def translate_sdiv(instr, env: Environment) -> list[LineOfAssembly]:
     operand_one_identifier = get_identifier_from_instruction(operand_one)
     operand_two_identifier = get_identifier_from_instruction(operand_two)
 
-    move_zero_instruction = Instruction(Opcode.MOV, 0, Registers.R0.value)
+    move_zero_instruction = Instruction(Opcode.MOV, ZERO, Registers.R0.value)
     if operand_one.is_constant:
         move_dividend_instruction = Instruction(Opcode.MOV, operand_one_identifier, Registers.R1.value)
     else:
