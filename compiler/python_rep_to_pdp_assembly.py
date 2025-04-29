@@ -21,6 +21,7 @@ class Opcode(Enum):
     BGT = "BGT"
     BGE = "BGE"
     BLT = "BLT"
+    BNE = "BNE"
     DIV = "DIV"
     MUL = "MUL"
 
@@ -48,11 +49,19 @@ class ICMP_Type(Enum):
     SGT = "sgt"
     SLE = "sle"
     SLT = "slt"
+    EQ = "eq"
+    NE = "ne"
 
 
 # Useful constants
 TOP_OF_STACK = "#40000"
 ZERO = "#0"
+ICMP_TYPE_DICT = {ICMP_Type.SGE.value: Opcode.BGE, 
+                  ICMP_Type.SGT.value: Opcode.BGT, 
+                  ICMP_Type.SLE.value: Opcode.BLE, 
+                  ICMP_Type.SLT.value: Opcode.BLT, 
+                  ICMP_Type.EQ.value: Opcode.BEQ,
+                  ICMP_Type.NE.value: Opcode.BNE, }
 
 
 # Dictionary from identifier to location on the stack
@@ -297,8 +306,8 @@ def translate_mul(instr, env: Environment) -> list[LineOfAssembly]:
         move_multiplicand_instruction = Instruction(Opcode.MOV, env.get(operand_one_identifier), Registers.R0.value)
     
     if operand_two.is_constant:
-        octal_value = oct(int(operand_two_identifier[1:]))[2:]
-        move_constant_instruction = Instruction(Opcode.MOV, f"#{octal_value}", Registers.R1.value)
+        octal_value = get_octal_of_constant(operand_two_identifier)
+        move_constant_instruction = Instruction(Opcode.MOV, octal_value, Registers.R1.value)
         multiply_instruction = Instruction(Opcode.MUL, Registers.R1.value, Registers.R0.value)
         move_result_instruction = Instruction(Opcode.MOV, Registers.R1.value, env.get(instruction_identifier))
         return [move_multiplicand_instruction, move_constant_instruction,
@@ -353,7 +362,8 @@ def translate_store(instr, env: Environment) -> list[LineOfAssembly]:
 
     if operand_one.is_constant:
         instruction = Instruction(
-            Opcode.MOV, operand_one_identifier, env.get(operand_two_identifier)
+            Opcode.MOV, get_octal_of_constant(operand_one_identifier),
+            env.get(operand_two_identifier)
         )
     else:
         instruction = Instruction(
@@ -494,135 +504,163 @@ def translate_icmp(instr, env: Environment) -> list[LineOfAssembly]:
         operand2_identifier = env.get(operand2_identifier)
 
     icmp_type = get_icmp_type_from_instruction(instr)
-    match icmp_type:
-        case ICMP_Type.SGE.value:
-            env.add(instr_identifier, 2)
-            compare_instruction = Instruction(
-                Opcode.CMP, operand1_identifier, operand2_identifier
-            )
-            bge_instruction = Instruction(
-                Opcode.BGE, get_ICMP_label()
-            )
-            if_no_branch_set_to_zero = Instruction(
-                Opcode.MOV, "#0", env.get(instr_identifier)
-            )
-            go_to_done_with_branch = Instruction(
-                Opcode.BR, get_DONE_WITH_ICMP_label()
-            )
-            instructions = [
-                compare_instruction,
-                bge_instruction,
-                if_no_branch_set_to_zero,
-                go_to_done_with_branch,
-            ]
+    env.add(instr_identifier, 2)
+    compare_instruction = Instruction(
+        Opcode.CMP, operand1_identifier, operand2_identifier
+    )
+    branch_icmp_instruction = Instruction(
+        ICMP_TYPE_DICT[icmp_type], get_ICMP_label()
+    )
+    if_no_branch_set_to_zero = Instruction(
+        Opcode.MOV, "#0", env.get(instr_identifier)
+    )
+    go_to_done_with_branch = Instruction(
+        Opcode.BR, get_DONE_WITH_ICMP_label()
+    )
+    instructions = [
+        compare_instruction,
+        branch_icmp_instruction,
+        if_no_branch_set_to_zero,
+        go_to_done_with_branch,
+    ]
 
-            # if BGE is true
-            instructions.append(f"{get_ICMP_label()}:")
-            if_branch_set_to_one = Instruction(
-                Opcode.MOV, "#1", env.get(instr_identifier)
-            )
-            instructions.append(if_branch_set_to_one)
+    instructions.append(f"{get_ICMP_label()}:")
+    if_branch_set_to_one = Instruction(
+        Opcode.MOV, "#1", env.get(instr_identifier)
+    )
+    instructions.append(if_branch_set_to_one)
 
-            # done with BGE compare
-            instructions.append(f"{get_DONE_WITH_ICMP_label()}:")
+    instructions.append(f"{get_DONE_WITH_ICMP_label()}:")
 
-        case ICMP_Type.SGT.value:
-            env.add(instr_identifier, 2)
-            compare_instruction = Instruction(
-                Opcode.CMP, operand1_identifier, operand2_identifier
-            )
-            bgt_instruction = Instruction(
-                Opcode.BGT, get_ICMP_label()
-            )
-            if_no_branch_set_to_zero = Instruction(
-                Opcode.MOV, "#0", env.get(instr_identifier)
-            )
-            go_to_done_with_branch = Instruction(
-                Opcode.BR, get_DONE_WITH_ICMP_label()
-            )
-            instructions = [
-                compare_instruction,
-                bgt_instruction,
-                if_no_branch_set_to_zero,
-                go_to_done_with_branch,
-            ]
+    # match icmp_type:
+    #     case ICMP_Type.SGE.value:
+    #         env.add(instr_identifier, 2)
+    #         compare_instruction = Instruction(
+    #             Opcode.CMP, operand1_identifier, operand2_identifier
+    #         )
+    #         bge_instruction = Instruction(
+    #             Opcode.BGE, get_ICMP_label()
+    #         )
+    #         if_no_branch_set_to_zero = Instruction(
+    #             Opcode.MOV, "#0", env.get(instr_identifier)
+    #         )
+    #         go_to_done_with_branch = Instruction(
+    #             Opcode.BR, get_DONE_WITH_ICMP_label()
+    #         )
+    #         instructions = [
+    #             compare_instruction,
+    #             bge_instruction,
+    #             if_no_branch_set_to_zero,
+    #             go_to_done_with_branch,
+    #         ]
 
-            # if BGT is true
-            instructions.append(f"{get_ICMP_label()}:")
-            if_branch_set_to_one = Instruction(
-                Opcode.MOV, "#1", env.get(instr_identifier)
-            )
-            instructions.append(if_branch_set_to_one)
+    #         # if BGE is true
+    #         instructions.append(f"{get_ICMP_label()}:")
+    #         if_branch_set_to_one = Instruction(
+    #             Opcode.MOV, "#1", env.get(instr_identifier)
+    #         )
+    #         instructions.append(if_branch_set_to_one)
 
-            # done with BGT compare
-            instructions.append(f"{get_DONE_WITH_ICMP_label()}:")
+    #         # done with BGE compare
+    #         instructions.append(f"{get_DONE_WITH_ICMP_label()}:")
 
-        case ICMP_Type.SLE.value:
-            env.add(instr_identifier, 2)
-            compare_instruction = Instruction(
-                Opcode.CMP, operand1_identifier, operand2_identifier
-            )
-            ble_instruction = Instruction(
-                Opcode.BLE, get_ICMP_label()
-            )
-            if_no_branch_set_to_zero = Instruction(
-                Opcode.MOV, "#0", env.get(instr_identifier)
-            )
-            go_to_done_with_branch = Instruction(
-                Opcode.BR, get_DONE_WITH_ICMP_label()
-            )
-            instructions = [
-                compare_instruction,
-                ble_instruction,
-                if_no_branch_set_to_zero,
-                go_to_done_with_branch,
-            ]
+    #     case ICMP_Type.SGT.value:
+    #         env.add(instr_identifier, 2)
+    #         compare_instruction = Instruction(
+    #             Opcode.CMP, operand1_identifier, operand2_identifier
+    #         )
+    #         bgt_instruction = Instruction(
+    #             Opcode.BGT, get_ICMP_label()
+    #         )
+    #         if_no_branch_set_to_zero = Instruction(
+    #             Opcode.MOV, "#0", env.get(instr_identifier)
+    #         )
+    #         go_to_done_with_branch = Instruction(
+    #             Opcode.BR, get_DONE_WITH_ICMP_label()
+    #         )
+    #         instructions = [
+    #             compare_instruction,
+    #             bgt_instruction,
+    #             if_no_branch_set_to_zero,
+    #             go_to_done_with_branch,
+    #         ]
 
-            # if BLE is true
-            instructions.append(f"{get_ICMP_label()}:")
-            if_branch_set_to_one = Instruction(
-                Opcode.MOV, "#1", env.get(instr_identifier)
-            )
-            instructions.append(if_branch_set_to_one)
+    #         # if BGT is true
+    #         instructions.append(f"{get_ICMP_label()}:")
+    #         if_branch_set_to_one = Instruction(
+    #             Opcode.MOV, "#1", env.get(instr_identifier)
+    #         )
+    #         instructions.append(if_branch_set_to_one)
 
-            # done with BLE compare
-            instructions.append(f"{get_DONE_WITH_ICMP_label()}:")
+    #         # done with BGT compare
+    #         instructions.append(f"{get_DONE_WITH_ICMP_label()}:")
+
+    #     case ICMP_Type.SLE.value:
+    #         env.add(instr_identifier, 2)
+    #         compare_instruction = Instruction(
+    #             Opcode.CMP, operand1_identifier, operand2_identifier
+    #         )
+    #         ble_instruction = Instruction(
+    #             Opcode.BLE, get_ICMP_label()
+    #         )
+    #         if_no_branch_set_to_zero = Instruction(
+    #             Opcode.MOV, "#0", env.get(instr_identifier)
+    #         )
+    #         go_to_done_with_branch = Instruction(
+    #             Opcode.BR, get_DONE_WITH_ICMP_label()
+    #         )
+    #         instructions = [
+    #             compare_instruction,
+    #             ble_instruction,
+    #             if_no_branch_set_to_zero,
+    #             go_to_done_with_branch,
+    #         ]
+
+    #         # if BLE is true
+    #         instructions.append(f"{get_ICMP_label()}:")
+    #         if_branch_set_to_one = Instruction(
+    #             Opcode.MOV, "#1", env.get(instr_identifier)
+    #         )
+    #         instructions.append(if_branch_set_to_one)
+
+    #         # done with BLE compare
+    #         instructions.append(f"{get_DONE_WITH_ICMP_label()}:")
 
         
 
-        case ICMP_Type.SLT.value:
-            env.add(instr_identifier, 2)
-            compare_instruction = Instruction(
-                Opcode.CMP, operand1_identifier, operand2_identifier
-            )
-            blt_instruction = Instruction(
-                Opcode.BLT, get_ICMP_label()
-            )
-            if_no_branch_set_to_zero = Instruction(
-                Opcode.MOV, "#0", env.get(instr_identifier)
-            )
-            go_to_done_with_branch = Instruction(
-                Opcode.BR, get_DONE_WITH_ICMP_label()
-            )
-            instructions = [
-                compare_instruction,
-                blt_instruction,
-                if_no_branch_set_to_zero,
-                go_to_done_with_branch,
-            ]
+    #     case ICMP_Type.SLT.value:
+    #         env.add(instr_identifier, 2)
+    #         compare_instruction = Instruction(
+    #             Opcode.CMP, operand1_identifier, operand2_identifier
+    #         )
+    #         blt_instruction = Instruction(
+    #             Opcode.BLT, get_ICMP_label()
+    #         )
+    #         if_no_branch_set_to_zero = Instruction(
+    #             Opcode.MOV, "#0", env.get(instr_identifier)
+    #         )
+    #         go_to_done_with_branch = Instruction(
+    #             Opcode.BR, get_DONE_WITH_ICMP_label()
+    #         )
+    #         instructions = [
+    #             compare_instruction,
+    #             blt_instruction,
+    #             if_no_branch_set_to_zero,
+    #             go_to_done_with_branch,
+    #         ]
 
-            # if BLT is true
-            instructions.append(f"{get_ICMP_label()}:")
-            if_branch_set_to_one = Instruction(
-                Opcode.MOV, "#1", env.get(instr_identifier)
-            )
-            instructions.append(if_branch_set_to_one)
+    #         # if BLT is true
+    #         instructions.append(f"{get_ICMP_label()}:")
+    #         if_branch_set_to_one = Instruction(
+    #             Opcode.MOV, "#1", env.get(instr_identifier)
+    #         )
+    #         instructions.append(if_branch_set_to_one)
 
-            # done with BLT compare
-            instructions.append(f"{get_DONE_WITH_ICMP_label()}:")
+    #         # done with BLT compare
+    #         instructions.append(f"{get_DONE_WITH_ICMP_label()}:")
 
-        case _:
-            raise NotImplementedError(f"Icmp type {icmp_type} not supported yet.")
+    #     case _:
+    #         raise NotImplementedError(f"Icmp type {icmp_type} not supported yet.")
 
     branch_counter += 1
 
@@ -693,6 +731,9 @@ def get_identifier_from_operand_with_type(operand) -> str:
 
     return identifier.lstrip()
 
+
+def get_octal_of_constant(identifier) -> str:
+    return f"#{oct(int(identifier[1:]))[2:]}"
 
 def get_function_name_from_instruction(instr) -> str:
     str_instr = str(instr)
