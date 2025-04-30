@@ -10,5 +10,9 @@ int main() {
 		n /= 10;
 	}
 
-	return original == reversed;
+	if (original == reversed) {
+		return 1;
+	}
+
+	return 0;
 }
