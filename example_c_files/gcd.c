@@ -15,6 +15,7 @@ int lcm(int first, int second) {
 	return (first / gcd(first, second)) * second;
 }
 
+// Returns 700 = 0x1274
 int main() {
 	int one = 30;
 	int two = 20;
