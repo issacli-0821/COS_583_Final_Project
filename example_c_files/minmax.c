@@ -37,6 +37,7 @@ int mean(int first, int second, int third)
 	return (first + second + third) / 3;
 }
 
+// Returns 724
 int main()
 {
 	int one = 2;

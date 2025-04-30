@@ -7,6 +7,7 @@ int gcd(int one, int two) {
 	}
 }
 
+// Returns 1
 int main() {
 	int one = 512;
 	int two = 257;
