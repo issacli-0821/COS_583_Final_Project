@@ -1,7 +1,7 @@
 int main() {
 	int n = 1331;
 	int reversed = 0;
-	int remainder;
+	int remainder = 0;
 	int original = n;
 
 	while (n != 0) {

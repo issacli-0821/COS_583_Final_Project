@@ -7,6 +7,7 @@ int multiply(int x, int y) {
     return result;
 }
 
+// Returns 24
 int main() {
     int a = 6;
     int b = 4;

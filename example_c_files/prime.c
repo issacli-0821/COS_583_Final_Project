@@ -1,3 +1,4 @@
+// Returns 1
 int main() {
 	int n = 43;
 	int flag = 1;

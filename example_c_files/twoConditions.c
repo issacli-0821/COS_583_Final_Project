@@ -1,3 +1,4 @@
+// Returns 3
 int main() {
     int numOne = 12;
     int numTwo = 2;
