@@ -225,6 +225,9 @@ def translate_instruction(
         
         case "sdiv":
             return translate_sdiv(instr, env)
+        
+        case "srem":
+            return translate_srem(instr, env)
 
         case "store":
             return translate_store(instr, env)
@@ -340,6 +343,36 @@ def translate_sdiv(instr, env: Environment) -> list[LineOfAssembly]:
         divide_instruction = Instruction(Opcode.DIV, env.get(operand_two_identifier), Registers.R0.value)
 
     move_result_back_instruction = Instruction(Opcode.MOV, Registers.R0.value,
+                                               env.get(instruction_identifier))
+
+    return [move_zero_instruction, move_dividend_instruction,
+            divide_instruction, move_result_back_instruction]
+
+
+def translate_srem(instr, env: Environment) -> list[LineOfAssembly]:
+
+    instruction_identifier = get_identifier_from_instruction(instr)
+    env.add(instruction_identifier, 2)
+
+    operands = list(instr.operands)
+    operand_one = operands[0]
+    operand_two = operands[1]
+
+    operand_one_identifier = get_identifier_from_instruction(operand_one)
+    operand_two_identifier = get_identifier_from_instruction(operand_two)
+
+    move_zero_instruction = Instruction(Opcode.MOV, ZERO, Registers.R0.value)
+    if operand_one.is_constant:
+        move_dividend_instruction = Instruction(Opcode.MOV, get_octal_of_constant(operand_one_identifier), Registers.R1.value)
+    else:
+        move_dividend_instruction = Instruction(Opcode.MOV, env.get(operand_one_identifier), Registers.R1.value)
+    
+    if operand_two.is_constant:
+        divide_instruction = Instruction(Opcode.DIV, get_octal_of_constant(operand_two_identifier), Registers.R0.value)
+    else:
+        divide_instruction = Instruction(Opcode.DIV, env.get(operand_two_identifier), Registers.R0.value)
+
+    move_result_back_instruction = Instruction(Opcode.MOV, Registers.R1.value,
                                                env.get(instruction_identifier))
 
     return [move_zero_instruction, move_dividend_instruction,
